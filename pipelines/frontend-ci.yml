@@ -111,6 +111,7 @@ stages:
           # ─── 3. Install Trivy ───
           - script: |
               curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+              sudo mv ./bin/trivy /usr/local/bin/trivy
               trivy --version
             displayName: 'Install Trivy'
 
