@@ -45,6 +45,7 @@ stages:
             inputs:
               versionSpec: '21'
               jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
             displayName: 'Setup JDK 21'
           - task: Cache@2
             inputs:
