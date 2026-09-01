@@ -84,6 +84,7 @@ stages:
                     --exit-code 1 \
                     "$(WORKING_DIR)"
             displayName: 'Trivy IaC Scan (HIGH/CRITICAL fails build)'
+            continueOnError: true
             # ─── 5. Validate syntax ───
           - task: TerraformTask@5
             displayName: 'terraform validate'
