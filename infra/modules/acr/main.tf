@@ -9,7 +9,7 @@ resource "azurerm_container_registry" "acr" {
 }
 
 resource "azurerm_role_assignment" "acrpull" {
-  name = "AcrPull"
-  scope = azurerm_container_registry.acr.id
-  principal_id = data.azurerm_client_config.current.object_id
+  role_definition_name = "AcrPull"
+  scope                = azurerm_container_registry.acr.id
+  principal_id         = data.azurerm_client_config.current.object_id
 }
