@@ -85,13 +85,6 @@ stages:
                     "$(WORKING_DIR)"
             displayName: 'Trivy IaC Scan (HIGH/CRITICAL fails build)'
             continueOnError: true
-            # ─── 5. Validate syntax ───
-          - task: TerraformTask@5
-            displayName: 'terraform validate'
-            inputs:
-              provider: 'azurerm'
-              command: 'validate'
-              workingDirectory: $(WORKING_DIR)
   # ─────────────────────────────────────────────
   # Stage 2: Plan (PR + Main)
   # ─────────────────────────────────────────────
@@ -147,6 +140,7 @@ stages:
               INFRACOST_API_KEY: $(INFRACOST-API-KEY)
            # ─── 7. Generate plan ───
           - script: |
+                terraform validate
                 terraform plan -out=tfplan -input=false
                 terraform show -no-color tfplan > tfplan.txt
             displayName: Terraform Plan
