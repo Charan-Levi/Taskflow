@@ -50,7 +50,8 @@ stages:
       or(
         eq(variables['Build.Reason'], 'PullRequest'),
         eq(variables['Build.Reason'], 'Manual'),
-        eq(variables['Build.SourceBranch'], 'refs/heads/main')
+        eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+        ne('${{ parameters.action }}', 'destroy')
       )
     jobs:
       - job: Validate
@@ -98,7 +99,8 @@ stages:
         or(
           eq(variables['Build.Reason'], 'PullRequest'),
           eq(variables['Build.Reason'], 'Manual'),
-          eq(variables['Build.SourceBranch'], 'refs/heads/main')
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+          ne('${{ parameters.action }}', 'destroy')
         )
       )
     jobs:
@@ -192,7 +194,8 @@ stages:
                 ),
                 and(
                   eq(variables['Build.Reason'], 'Manual'),
-                  eq('${{ parameters.action }}', 'apply')
+                  eq('${{ parameters.action }}', 'apply'),
+                  ne('${{ parameters.action }}', 'destroy')
                 )
               )
             )
@@ -237,7 +240,7 @@ stages:
                   env:
                     TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
   - stage: TerraformDestroy
-    condition: eq('${{ parameters.action }}','destroy' )
+    condition: eq('${{ parameters.action }}', 'destroy')
     displayName: Terraform Destroy (DEV)
     pool:
       vmImage: 'ubuntu-latest'
