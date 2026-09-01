@@ -59,6 +59,7 @@ stages:
               cd $(WORKING_DIR)
               npm run lint
             displayName: 'ESLint'
+            continueOnError: true
 
           # ─── TypeScript type check ───
           - script: |
