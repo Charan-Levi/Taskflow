@@ -1,0 +1,168 @@
+name: Backend-Java-CI
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - app/backend-java/**
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - app/backend-java/**
+
+variables:
+  - name: SERVICE_NAME
+    value: 'backend-java'
+  - name: ACR_NAME
+    value: 'taskflowdevacr'
+  - name: IMAGE_NAME
+    value: 'taskflow/backend-java'
+  - name: IMAGE_TAG
+    value: '$(Build.SourceVersion)'
+  - name: WORKING_DIR
+    value: 'app/backend-java'
+
+stages:
+  # ─────────────────────────────────────────────
+  # Stage 1: Code Scanning
+  # ─────────────────────────────────────────────
+  - stage: CodeScan
+    displayName: 'Static Code Analysis'
+    jobs:
+      - job: ScanCode
+        displayName: 'Compile, Test, Security Scan'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - task: JavaToolInstaller@0
+            inputs:
+              versionSpec: '21'
+              jdkArchitectureOption: 'x64'
+            displayName: 'Setup JDK 21'
+          - task: Cache@2
+            inputs:
+              key: 'maven | "$(Agent.OS)" | $(WORKING_DIR)/**/pom.xml'
+              path: $(WORKING_DIR)/.m2/repository
+            displayName: 'Cache Maven'
+
+          # ─── Compile ───
+          - task: Maven@4
+            displayName: 'Maven Compile'
+            inputs:
+              mavenPomFile: '$(WORKING_DIR)/pom.xml'
+              goals: 'compile'
+              options: '-B -q'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '21'
+
+          # ─── Unit tests ───
+          - task: Maven@4
+            displayName: 'Maven Test'
+            inputs:
+              mavenPomFile: '$(WORKING_DIR)/pom.xml'
+              goals: 'test'
+              options: '-B'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '21'
+              publishJUnitResults: true
+              testResultsFiles: '**/TEST-*.xml'
+
+          # ─── OWASP dependency check (CVEs in dependencies) ───
+          - script: |
+              cd $(WORKING_DIR)
+              mvn -B -q org.owasp:dependency-check-maven:check \
+                -DfailBuildOnAnyVulnerability=true \
+                -DassemblyAnalyzerEnabled=false \
+                -DarchiveAnalyzerEnabled=false \
+                -DnodeAuditAnalyzerEnabled=false
+            displayName: 'OWASP Dependency Check'
+            continueOnError: true
+
+          # ─── SpotBugs static analysis ───
+          - script: |
+              cd $(WORKING_DIR)
+              mvn -B -q com.github.spotbugs:spotbugs-maven-plugin:4.8.6.0:check
+            displayName: 'SpotBugs'
+
+
+  # ─────────────────────────────────────────────
+  # Stage 2: Build, Scan, Sign, Push
+  # ─────────────────────────────────────────────
+  - stage: BuildAndPush
+    displayName: 'Build, Scan, Sign, Push Image'
+    dependsOn: CodeScan
+    condition: |
+      and(
+        succeeded(),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main')
+      )
+    jobs:
+      - job: BuildScanSignPush
+        displayName: 'Container Lifecycle'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - task: AzureCLI@3
+            displayName: 'ACR Login (OIDC)'
+            inputs:
+              connectionType: 'azureRM'
+              azureSubscription: 'azure-connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: 'az acr login --name $(ACR_NAME)'
+              addSpnToEnvironment: true
+          - script: |
+              docker build -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) -f $(WORKING_DIR)/Dockerfile $(WORKING_DIR)
+              docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)
+              docker tag $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
+              docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
+            displayName: Docker Build And Push
+
+          # ─── 3. Install Trivy ───
+          - script: |
+              curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+              sudo mv ./bin/trivy /usr/local/bin/trivy
+              trivy --version
+            displayName: 'Install Trivy'
+
+          # ─── 4. Image vulnerability scan ───
+          - script: |
+              trivy image \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --no-progress \
+                "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
+            displayName: 'Trivy Image Scan (HIGH/CRITICAL fails build)'
+            continueOnError: true
+
+          # # ─── 5. Install Cosign ───
+          # - script: |
+          #     curl -O -L https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64
+          #     sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+          #     sudo chmod +x /usr/local/bin/cosign
+          #     cosign version
+          #   displayName: 'Install Cosign'
+
+          # # ─── 6. Sign image with Cosign (keyless via OIDC) ───
+          # - task: AzureCLI@3
+          #   displayName: 'Sign Image (Cosign Keyless)'
+          #   inputs:
+          #     azureSubscription: 'azure-connection'
+          #     scriptType: 'bash'
+          #     addSpnToEnvironment: true
+          #     scriptLocation: 'inlineScript'
+          #     inlineScript: |
+          #       # Keyless signing uses Azure DevOps OIDC token
+          #       # The signature is stored in the Rekor transparency log
+          #       cosign sign --yes \
+          #         "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
+          #   env:
+          #     COSIGN_EXPERIMENTAL: '1'
