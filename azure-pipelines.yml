@@ -139,18 +139,29 @@ stages:
             env:
               INFRACOST_API_KEY: $(INFRACOST-API-KEY)
            # ─── 7. Generate plan ───
-          - script: |
+          - task: AzureCLI@3
+            displayName: 'Terraform Plan'
+            inputs:
+              connectionType: 'azureRM'
+              azureSubscription: 'azure-connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
                 terraform validate
-                terraform plan -out=tfplan -input=false
-                terraform show -no-color tfplan > tfplan.txt
-            displayName: Terraform Plan
-            workingDirectory: $(WORKING_DIR)
+                
+                      terraform plan \
+                        -out=tfplan \
+                        -input=false
+                
+                      terraform show \
+                        -no-color \
+                        tfplan > tfplan.txt
+              workingDirectory: '$(WORKING_DIR)'
             env:
                ARM_SUBSCRIPTION_ID: $(ARM-SUBSCRIPTION-ID)
                ARM_TENANT_ID: $(ARM-TENANT-ID)
                ARM_CLIENT_ID: $(ARM-CLIENT-ID)
                ARM_USE_OIDC: true
-               POSTGRES_PASSWORD: $(POSTGRES-PASSWORD)
                TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
 
           - task: PublishPipelineArtifact@1
