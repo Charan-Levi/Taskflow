@@ -27,42 +27,42 @@ module "networking" {
 }
 
 module "postgres" {
-  source = "../../modules/postgres"
+  source              = "../../modules/postgres"
   resource_group_name = module.rg.resource_group_name
-  location = module.rg.location
-  database_subnet_id = module.networking.database_subnet_id
-  vnet_id = module.networking.vnet_id
-  pg_version = 16
-  postgres_admin = "taskmanager"
-  postgres_pass = var.postgres_pass
-  database_name = "taskmanager"
-  sku_name = "B_Standard_B2s"
+  location            = module.rg.location
+  database_subnet_id  = module.networking.database_subnet_id
+  vnet_id             = module.networking.vnet_id
+  pg_version          = 16
+  postgres_admin      = "taskmanager"
+  postgres_pass       = var.postgres_pass
+  database_name       = "taskmanager"
+  sku_name            = "B_Standard_B2s"
 }
 
 module "acr" {
-  source = "../../modules/acr"
-  name_prefix = local.name_prefix
+  source              = "../../modules/acr"
+  name_prefix         = local.name_prefix
   resource_group_name = module.rg.resource_group_name
-  location = module.rg.location
-  acr_sku = "Basic"
+  location            = module.rg.location
+  acr_sku             = "Basic"
 }
 
 module "aks" {
-  source = "../../modules/aks"
-  name_prefix = local.name_prefix
+  source              = "../../modules/aks"
+  name_prefix         = local.name_prefix
   resource_group_name = module.rg.resource_group_name
-  location = module.rg.location
-  tags = local.tags
-  node_vmsize = "Standard_D4ds_v5"
-  vnet_subnet_id = module.networking.aks_subnet_id
-  acr_id = module.acr.acr_id
+  location            = module.rg.location
+  tags                = local.tags
+  node_vmsize         = "Standard_D4ds_v5"
+  vnet_subnet_id      = module.networking.aks_subnet_id
+  acr_id              = module.acr.acr_id
 }
 
 module "keyvault" {
-  source = "../../modules/keyvault"
-  name_prefix = local.name_prefix
+  source              = "../../modules/keyvault"
+  name_prefix         = local.name_prefix
   resource_group_name = module.rg.resource_group_name
-  location = module.rg.location
-  tags = local.tags
-  postgres_pass = var.postgres_pass
+  location            = module.rg.location
+  tags                = local.tags
+  postgres_pass       = var.postgres_pass
 }

@@ -19,7 +19,7 @@ output "pg_database" {
 }
 
 output "connection_string" {
-  value = module.postgres.connection_string
+  value     = module.postgres.connection_string
   sensitive = true
 }
 

@@ -27,6 +27,6 @@ variable "tags" {
 }
 
 variable "acr_sku" {
-  type = string
+  type    = string
   default = "Basic"
 }

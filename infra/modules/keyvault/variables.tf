@@ -26,6 +26,6 @@ variable "tags" {
 }
 
 variable "postgres_pass" {
-  type = string
+  type      = string
   sensitive = true
 }

@@ -1,5 +1,5 @@
 variable "postgres_pass" {
-  type = string
+  type        = string
   description = "Postgres Admin Password"
-  sensitive = true
+  sensitive   = true
 }

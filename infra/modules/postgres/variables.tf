@@ -27,37 +27,37 @@ variable "tags" {
 }
 
 variable "vnet_id" {
-  type = string
+  type        = string
   description = "Virtual Network ID"
 }
 
 variable "pg_version" {
-  type = string
+  type        = string
   description = "Postgre SQL Version"
 }
 
 variable "database_subnet_id" {
-  type = string
+  type        = string
   description = "Database subnet resource id"
 }
 
 variable "postgres_admin" {
-  type = string
+  type        = string
   description = "Postgres Admin Username"
 }
 
 variable "postgres_pass" {
-  type = string
+  type        = string
   description = "Postgres Admin Password"
-  sensitive = true
+  sensitive   = true
 }
 
 variable "database_name" {
-  type = string
+  type        = string
   description = "name of the database to create in Postgres"
 }
 
 variable "sku_name" {
   type    = string
-  default = "B_Standard_B2s"  # dev default
+  default = "B_Standard_B2s" # dev default
 }

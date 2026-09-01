@@ -26,16 +26,16 @@ variable "tags" {
 }
 
 variable "node_vmsize" {
-  type = string
+  type        = string
   description = "Vm size of the aks node"
 }
 
 variable "vnet_subnet_id" {
-  type = string
+  type        = string
   description = "AKS Subnet ID"
 }
 
 variable "acr_id" {
-  type = string
+  type        = string
   description = "value"
 }
