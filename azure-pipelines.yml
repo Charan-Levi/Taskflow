@@ -80,10 +80,9 @@ stages:
               curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin   
               trivy --version
               trivy config \
-                --severity HIGH,CRITICAL \
-                --exit-code 1 \
-                --no-progress \
-                $(WORKING_DIR)
+                    --severity HIGH,CRITICAL \
+                    --exit-code 1 \
+                    "$(WORKING_DIR)"
             displayName: 'Trivy IaC Scan (HIGH/CRITICAL fails build)'
             # ─── 5. Validate syntax ───
           - task: TerraformTask@5
