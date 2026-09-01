@@ -1,19 +1,52 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+name: Terraform Infrastructure DEV
 
 trigger:
-- main
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - infra/envs/dev/**
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - infra/envs/dev/**
 
-pool:
-  vmImage: ubuntu-latest
+schedules:
+  - cron: "0 21 * * 5"
+    displayName: Every Friday at 9:00 PM
+    branches:
+      include:
+        - main
+    always: true
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+  - group: terraform-variables
+  - name: TF_VERSION
+    value: "1.14.x"
+  - name: WORKDIR
+    value: infra/envs/dev
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+  #-----------------------------------------------------------
+  # Stage 1 ; Quality and Security Checks (PR Only)
+  #-----------------------------------------------------------
+  - stage: QualityChecks
+    displayName: 'Quality & Security Checks'
+    condition: eq(variables['Build.Reaaon'], 'PullRequest')
+    jobs:
+      - job: Validate
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: '$(TF_VERSION)'
+          #---Format Check----
+          - bash: terraform fmt --recursive
+            workingDirectory: $(WORKDIR)
+
