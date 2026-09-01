@@ -1,0 +1,42 @@
+name: Frontend-CI
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - app/frontend/**
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - app/frontend/**
+
+variables:
+  - name: SERVICE_NAME
+    value: 'frontend'
+  - name: ACR_NAME
+    value: 'taskflowdevacr'
+  - name: IMAGE_NAME
+    value: 'taskflow/frontend'
+  - name: IMAGE_TAG
+    value: '$(Build.SourceVersion)'
+  - name: WORKING_DIR
+    value: app/frontend
+
+stages:
+  # ─────────────────────────────────────────────
+  # Stage 1: Code Scanning
+  # ─────────────────────────────────────────────
+  - stage: CodeScan
+    displayName: 'Static Code Analysis'
+    jobs:
+      - job: ScanCode
+        displayName: 'Lint, Type Check, Dependency Scan'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
