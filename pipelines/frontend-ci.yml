@@ -46,7 +46,7 @@ stages:
             displayName: Setup Node.js
           - task: Cache@2
             inputs:
-              key: '''npm | "$(Agent.OS)" | $(WORKING_DIR)/package-lock.json'''
+              key: 'npm | "$(Agent.OS)" | $(WORKING_DIR)/package-lock.json'
               path: '$(WORKING_DIR)/node_modules'
             displayName: Cache npm
 
