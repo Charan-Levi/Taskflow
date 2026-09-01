@@ -17,9 +17,13 @@ resource "azurerm_role_assignment" "kv_owner" {
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = data.azurerm_client_config.current.object_id
 }
-
+resource "time_sleep" "wait_for_rbac" {
+  depends_on      = [azurerm_role_assignment.kv_owner]
+  create_duration = "60s"
+}
 resource "azurerm_key_vault_secret" "kvsecret" {
   key_vault_id = azurerm_key_vault.kv.id
   name         = "postgres-password"
   value        = var.postgres_pass
+  depends_on = [time_sleep.wait_for_rbac]
 }
