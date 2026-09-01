@@ -40,3 +40,111 @@ stages:
           vmImage: 'ubuntu-latest'
         steps:
           - checkout: self
+          - task: UseNode@1
+            inputs:
+              version: '20.x'
+            displayName: Setup Node.js
+          - task: Cache@2
+            inputs:
+              key: '''npm | "$(Agent.OS)" | $(WORKING_DIR)/package-lock.json'''
+              path: '$(WORKING_DIR)/node_modules'
+            displayName: Cache npm
+
+          - script: |
+              cd $(WORKING_DIR)
+              npm ci --prefer-offline --no-audit
+            displayName: 'Install Dependencies'
+
+          - script: |
+              cd $(WORKING_DIR)
+              npm run lint
+            displayName: 'ESLint'
+
+          # ─── TypeScript type check ───
+          - script: |
+              cd $(WORKING_DIR)
+              npx tsc --noEmit
+            displayName: 'TypeScript Type Check'
+
+          # ─── Dependency vulnerability scan ───
+          - script: |
+              cd $(WORKING_DIR)
+              npm audit --audit-level=high
+            displayName: 'npm audit (HIGH fails build)'
+
+  # ─────────────────────────────────────────────
+  # Stage 2: Build, Scan, Sign, Push
+  # ─────────────────────────────────────────────
+  - stage: BuildAndPush
+    displayName: 'Build, Scan, Sign, Push Image'
+    dependsOn: CodeScan
+    condition: |
+      and(
+        succeeded(),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main')
+      )
+    jobs:
+      - job: BuildScanSignPush
+        displayName: 'Container Lifecycle'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - task: AzureCLI@3
+            displayName: 'ACR Login (OIDC)'
+            inputs:
+              connectionType: 'azureRM'
+              azureSubscription: 'azure-connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: 'az acr login --name $(ACR_NAME)'
+              addSpnToEnvironment: true
+          - task: Docker@2
+            inputs:
+              containerRegistry: '$(ACR_NAME)'
+              repository: '$(IMAGE_NAME)'
+              command: 'buildAndPush'
+              Dockerfile: '$(WORKING_DIR)/Dockerfile'
+              buildContext: '$(WORKING_DIR)'
+              tags: |
+                $(IMAGE_TAG)
+                latest
+
+          # ─── 3. Install Trivy ───
+          - script: |
+              curl -fsSL https://github.com/aquasecurity/trivy/releases/download/v0.58.1/trivy_0.58.1_Linux-64bit.tar.gz | sudo tar -xz -C /usr/local/bin trivy
+              trivy --version
+            displayName: 'Install Trivy'
+
+          # ─── 4. Image vulnerability scan ───
+          - script: |
+              trivy image \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --no-progress \
+                "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
+            displayName: 'Trivy Image Scan (HIGH/CRITICAL fails build)'
+
+          # ─── 5. Install Cosign ───
+          - script: |
+              curl -O -L https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64
+              sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+              sudo chmod +x /usr/local/bin/cosign
+              cosign version
+            displayName: 'Install Cosign'
+
+          # ─── 6. Sign image with Cosign (keyless via OIDC) ───
+          - task: AzureCLI@3
+            displayName: 'Sign Image (Cosign Keyless)'
+            inputs:
+              azureSubscription: 'azure-connection'
+              scriptType: 'bash'
+              addSpnToEnvironment: true
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Keyless signing uses Azure DevOps OIDC token
+                # The signature is stored in the Rekor transparency log
+                cosign sign --yes \
+                  "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
+            env:
+              COSIGN_EXPERIMENTAL: '1'
