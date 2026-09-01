@@ -8,6 +8,7 @@ parameters:
     values:
       - plan
       - apply
+      - destroy
 
 trigger:
   branches:
@@ -205,6 +206,9 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: '$(TF_VERSION)'
                 - download: current
                   artifact: terraform-plan
                 - script: |
@@ -232,3 +236,22 @@ stages:
                   displayName: Terraform Apply
                   env:
                     TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
+  - stage: TerraformDestroy
+    condition: eq('${{ parameters.action }}','destroy' )
+    displayName: Terraform Destroy (DEV)
+    pool:
+      vmImage: 'ubuntu-latest'
+    jobs:
+      - job: Destroy
+        steps:
+          - checkout: self
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: '$(TF_VERSION)'
+          - task: TerraformTask@5
+            inputs:
+              provider: 'azurerm'
+              command: 'destroy'
+              workingDirectory: '$(WORKING_DIR)'
+              commandOptions: '-auto-approve'
+              environmentServiceNameAzureRM: 'azure-connection'
