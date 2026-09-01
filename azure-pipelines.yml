@@ -127,7 +127,7 @@ stages:
 
           - script: |
               curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
-              infracost configure set api_key $(INFRACOST_API_KEY)
+              infracost configure set api_key $INFRACOST_API_KEY
               infracost breakdown --path=$(WORKING_DIR) --format=json --out-file=/tmp/infracost.json
               infracost output --path=/tmp/infracost.json --format=table
               if [ "$(Build.Reason)" = "PullRequest" ]; then
