@@ -35,7 +35,7 @@ schedules:
 variables:
   - group: terraform-variables
   - name: TF_VERSION
-    value: "1.14.x"
+    value: "1.14"
   - name: WORKING_DIR
     value: infra/envs/dev
 
