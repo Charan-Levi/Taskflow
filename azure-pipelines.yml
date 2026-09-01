@@ -1,5 +1,14 @@
 name: Terraform Infrastructure DEV
 
+parameters:
+  - name: action
+    displayName: 'Terraform Action'
+    type: string
+    default: plan
+    values:
+      - plan
+      - apply
+
 trigger:
   branches:
     include:
@@ -36,7 +45,12 @@ stages:
   #-----------------------------------------------------------
   - stage: QualityChecks
     displayName: 'Quality & Security Checks'
-    condition: eq(variables['Build.Reaaon'], 'PullRequest')
+    condition: |
+      or(
+        eq(variables['Build.Reason'], 'PullRequest'),
+        eq(variables['Build.Reason'], 'Manual'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main')
+      )
     jobs:
       - job: Validate
         pool:
@@ -87,6 +101,7 @@ stages:
         succeeded(),
         or(
           eq(variables['Build.Reason'], 'PullRequest'),
+          eq(variables['Build.Reason'], 'Manual'),
           eq(variables['Build.SourceBranch'], 'refs/heads/main')
         )
       )
@@ -153,14 +168,26 @@ stages:
             inputs:
               targetPath: '$(WORKING_DIR)/tfplan.txt'
               artifact: 'terraform-plan-text-dev'
+  # ─────────────────────────────────────────────
+  # Stage 3: Apply (DEV)
+  # ─────────────────────────────────────────────
   - stage: TerraformApply
     displayName: Terraform Apply (DEV)
     dependsOn: Plan
     condition: |
+            and(
+              succeeded('Plan'),
+              or(
                 and(
-                  succeeded(),
-                  eq(variables['Build.SourceBranch'], 'refs/heads/main')
+                  eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+                  ne(variables['Build.Reason'], 'PullRequest')
+                ),
+                and(
+                  eq(variables['Build.Reason'], 'Manual'),
+                  eq('${{ parameters.action }}', 'apply')
                 )
+              )
+            )
     jobs:
       - deployment: applyDev
         pool:
