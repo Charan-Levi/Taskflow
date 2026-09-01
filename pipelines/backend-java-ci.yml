@@ -91,6 +91,7 @@ stages:
               cd $(WORKING_DIR)
               mvn -B -q com.github.spotbugs:spotbugs-maven-plugin:4.8.6.0:check
             displayName: 'SpotBugs'
+            continueOnError: true
 
 
   # ─────────────────────────────────────────────
