@@ -260,3 +260,6 @@ stages:
               workingDirectory: '$(WORKING_DIR)'
               commandOptions: '-auto-approve'
               environmentServiceNameAzureRM: 'azure-connection'
+            displayName: Terraform Destroy
+            env:
+              TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
