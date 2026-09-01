@@ -247,19 +247,23 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     jobs:
-      - job: Destroy
-        steps:
-          - checkout: self
-          - task: TerraformInstaller@1
-            inputs:
-              terraformVersion: '$(TF_VERSION)'
-          - task: TerraformTask@5
-            inputs:
-              provider: 'azurerm'
-              command: 'destroy'
-              workingDirectory: '$(WORKING_DIR)'
-              commandOptions: '-auto-approve'
-              environmentServiceNameAzureRM: 'azure-connection'
-            displayName: Terraform Destroy
-            env:
-              TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
+      - deployment: 
+        environment: dev-destroy
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+              - checkout: self
+              - task: TerraformInstaller@1
+                inputs:
+                  terraformVersion: '$(TF_VERSION)'
+              - task: TerraformTask@5
+                inputs:
+                  provider: 'azurerm'
+                  command: 'destroy'
+                  workingDirectory: '$(WORKING_DIR)'
+                  commandOptions: '-auto-approve'
+                  environmentServiceNameAzureRM: 'azure-connection'
+                displayName: Terraform Destroy
+                env:
+                  TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
