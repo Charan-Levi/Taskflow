@@ -125,26 +125,26 @@ stages:
             displayName: 'Trivy Image Scan (HIGH/CRITICAL fails build)'
             continueOnError: true
 
-          # ─── 5. Install Cosign ───
-          - script: |
-              curl -O -L https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64
-              sudo mv cosign-linux-amd64 /usr/local/bin/cosign
-              sudo chmod +x /usr/local/bin/cosign
-              cosign version
-            displayName: 'Install Cosign'
+          # # ─── 5. Install Cosign ───
+          # - script: |
+          #     curl -O -L https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64
+          #     sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+          #     sudo chmod +x /usr/local/bin/cosign
+          #     cosign version
+          #   displayName: 'Install Cosign'
 
-          # ─── 6. Sign image with Cosign (keyless via OIDC) ───
-          - task: AzureCLI@3
-            displayName: 'Sign Image (Cosign Keyless)'
-            inputs:
-              azureSubscription: 'azure-connection'
-              scriptType: 'bash'
-              addSpnToEnvironment: true
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                # Keyless signing uses Azure DevOps OIDC token
-                # The signature is stored in the Rekor transparency log
-                cosign sign --yes \
-                  "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
-            env:
-              COSIGN_EXPERIMENTAL: '1'
+          # # ─── 6. Sign image with Cosign (keyless via OIDC) ───
+          # - task: AzureCLI@3
+          #   displayName: 'Sign Image (Cosign Keyless)'
+          #   inputs:
+          #     azureSubscription: 'azure-connection'
+          #     scriptType: 'bash'
+          #     addSpnToEnvironment: true
+          #     scriptLocation: 'inlineScript'
+          #     inlineScript: |
+          #       # Keyless signing uses Azure DevOps OIDC token
+          #       # The signature is stored in the Rekor transparency log
+          #       cosign sign --yes \
+          #         "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
+          #   env:
+          #     COSIGN_EXPERIMENTAL: '1'
