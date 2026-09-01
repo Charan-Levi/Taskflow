@@ -150,7 +150,9 @@ stages:
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                terraform validate
+                      set -e
+                      
+                      terraform validate
                 
                       terraform plan \
                         -out=tfplan \
