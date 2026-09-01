@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskflow-postgres
+    environment:
+      POSTGRES_USER: taskmanager
+      POSTGRES_PASSWORD: taskmanager
+      POSTGRES_DB: taskmanager
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskmanager -d taskmanager"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - taskflow-network
+
+  backend-java:
+    build:
+      context: ./backend-java
+      dockerfile: Dockerfile
+    container_name: taskflow-java
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/taskmanager
+      DATABASE_USER: taskmanager
+      DATABASE_PASSWORD: taskmanager
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - taskflow-network
+
+  backend-python:
+    build:
+      context: ./backend-python
+      dockerfile: Dockerfile
+    container_name: taskflow-python
+    environment:
+      DATABASE_URL: postgresql://taskmanager:taskmanager@postgres:5432/taskmanager
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8000/health'')"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - taskflow-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: taskflow-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend-java
+      - backend-python
+    networks:
+      - taskflow-network
+
+volumes:
+  postgres_data:
+
+networks:
+  taskflow-network:
+    driver: bridge
