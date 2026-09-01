@@ -195,7 +195,6 @@ stages:
                   ne(variables['Build.Reason'], 'PullRequest')
                 ),
                 and(
-                  eq(variables['Build.Reason'], 'Manual'),
                   eq('${{ parameters.action }}', 'apply'),
                   ne('${{ parameters.action }}', 'plan'),
                   ne('${{ parameters.action }}', 'destroy')
