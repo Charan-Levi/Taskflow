@@ -27,7 +27,7 @@ variables:
   - group: terraform-variables
   - name: TF_VERSION
     value: "1.14.x"
-  - name: WORKDIR
+  - name: WORKING_DIR
     value: infra/envs/dev
 
 stages:
@@ -46,7 +46,155 @@ stages:
           - task: TerraformInstaller@1
             inputs:
               terraformVersion: '$(TF_VERSION)'
-          #---Format Check----
-          - bash: terraform fmt --recursive
-            workingDirectory: $(WORKDIR)
+            #---Format Check---
+          - bash: terraform fmt -check -recursive
+            workingDirectory: $(WORKING_DIR)
+            displayName: Terraform fmt -check
+            # ─── 2. TFLint ───
+          - script: |
+              curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+              tflint --init
+              tflint --recursive
+            displayName: 'TFLint'
+            # ─── 3. Checkov (security & compliance) ───
+          - script: |
+              pip install checkov
+              checkov -d $(WORKING_DIR) --framework terraform --output cli --soft-fail
+            displayName: 'Checkov Security Scan'
+            # ─── 4. Trivy IaC scan (replaces tfsec) ───
+          - script: |
+              curl -fsSL https://github.com/aquasecurity/trivy/releases/download/v0.58.1/trivy_0.58.1_Linux-64bit.tar.gz | sudo tar -xz -C /usr/local/bin trivy
+              trivy iac $(WORKING_DIR) \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --no-progress
+            displayName: 'Trivy IaC Scan (HIGH/CRITICAL fails build)'
+            # ─── 5. Validate syntax ───
+          - task: TerraformTask@5
+            displayName: 'terraform validate'
+            inputs:
+              provider: 'azurerm'
+              command: 'validate'
+              workingDirectory: $(WORKING_DIR)
+  # ─────────────────────────────────────────────
+  # Stage 2: Plan (PR + Main)
+  # ─────────────────────────────────────────────
+  - stage: Plan
+    displayName: Terraform Plan
+    dependsOn: QualityChecks
+    condition: |
+      and(
+        succeeded(),
+        or(
+          eq(variables['Build.Reason'], 'PullRequest'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/main')
+        )
+      )
+    jobs:
+      - job: Plan
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: '$(TF_VERSION)'
+          - task: TerraformTask@5
+            displayName: Terraform Init
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: '$(WORKING_DIR)'
+              backendAzureRmUseEntraIdForAuthentication: false
+              backendServiceArm: 'azure-connection'
+              backendAzureRmResourceGroupName: 'rg-bootstrap'
+              backendAzureRmStorageAccountName: 'storageacc707'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'envs/dev/terraform.tfstate'
 
+          - script: |
+              curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+              infracost configure set api_key $(INFRACOST_API_KEY)
+              infracost breakdown --path=$(WORKING_DIR) --format=json --out-file=/tmp/infracost.json
+              infracost output --path=/tmp/infracost.json --format=table
+              if [ "$(Build.Reason)" = "PullRequest" ]; then
+                infracost comment azuredevops \
+                  --path=/tmp/infracost.json \
+                  --repo-url=$(Build.Repository.Uri) \
+                  --pull-request=$(System.PullRequest.PullRequestNumber) \
+                  --token=$(System.AccessToken) \
+                  --behavior=update
+              fi
+            displayName: 'Infracost Cost Estimation'
+            env:
+              INFRACOST_API_KEY: $(INFRACOST-API-KEY)
+           # ─── 7. Generate plan ───
+          - script: |
+                terraform plan -out=tfplan -input=false
+                terraform show -no-color tfplan > tfplan.txt
+            displayName: Terraform Plan
+            workingDirectory: $(WORKING_DIR)
+            env:
+               ARM_SUBSCRIPTION_ID: $(ARM-SUBSCRIPTION-ID)
+               ARM_TENANT_ID: $(ARM-TENANT-ID)
+               ARM_CLIENT_ID: $(ARM-CLIENT-ID)
+               ARM_USE_OIDC: true
+               POSTGRES_PASSWORD: $(POSTGRES-PASSWORD)
+               TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish plan artifact'
+            inputs:
+              targetPath: '$(WORKING_DIR)/tfplan'
+              artifact: 'terraform-plan'
+              publishLocation: 'pipeline'
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish plan text artifact'
+            inputs:
+              targetPath: '$(WORKING_DIR)/tfplan.txt'
+              artifact: 'terraform-plan-text-dev'
+  - stage: TerraformApply
+    displayName: Terraform Apply (DEV)
+    dependsOn: Plan
+    condition: |
+                and(
+                  succeeded(),
+                  eq(variables['Build.SourceBranch'], 'refs/heads/main')
+                )
+    jobs:
+      - deployment: applyDev
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: Dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - download: current
+                  artifact: terraform-plan
+                - script: |
+                    cp "$(Pipeline.Workspace)/terraform-plan/tfplan" "$(WORKING_DIR)/tfplan"
+                  displayName: 'Restore Terraform plan'
+                - task: TerraformTask@5
+                  displayName: Terraform Init
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'init'
+                    workingDirectory: '$(WORKING_DIR)'
+                    backendAzureRmUseEntraIdForAuthentication: false
+                    backendServiceArm: 'azure-connection'
+                    backendAzureRmResourceGroupName: 'rg-bootstrap'
+                    backendAzureRmStorageAccountName: 'storageacc707'
+                    backendAzureRmContainerName: 'tfstate'
+                    backendAzureRmKey: 'envs/dev/terraform.tfstate'
+                - task: TerraformTask@5
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'apply'
+                    workingDirectory: '$(WORKING_DIR)'
+                    commandOptions: '-input=false tfplan'
+                    environmentServiceNameAzureRM: 'azure-connection'
+                  displayName: Terraform Apply
+                  env:
+                    TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
