@@ -36,16 +36,19 @@ spring:
 management:
   endpoints:
     web:
-      exposure:
-        include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
       probes:
         enabled: true
   health:
-    db:
+    livenessState:
       enabled: true
+    readinessState:
+      enabled: true
+  server:
+    port: 8080
 
 info:
   app:

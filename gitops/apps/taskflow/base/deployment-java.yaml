@@ -40,15 +40,15 @@ spec:
               memory: 1Gi
           livenessProbe:
             httpGet:
-              path: /api/java/health
+              path: /actuator/health/liveness
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 10
             failureThreshold: 5
           readinessProbe:
             httpGet:
-              path: /api/java/health
+              path: /actuator/health/readiness
               port: 8080
             initialDelaySeconds: 30
-            periodSeconds: 5
+            periodSeconds: 10
             failureThreshold: 3
