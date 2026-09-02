@@ -36,6 +36,6 @@ spec:
                 port:
                   number: 8000
   tls:
-      - hosts:
+    - hosts:
         - taskflow-dev.centralindia.cloudapp.azure.com
       secretName: taskflow-tls
