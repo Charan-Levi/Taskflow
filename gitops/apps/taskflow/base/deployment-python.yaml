@@ -22,9 +22,10 @@ spec:
           ports:
             - containerPort: 8000
               name: http
+          envFrom:
+            - configMapRef:
+                name: taskflow-config
           env:
-            - name: DATABASE_URL
-              value: "postgresql://taskmanager@taskflow-dev-taskflowpsqlserver.postgres.database.azure.com:5432/taskmanager?sslmode=require"
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
