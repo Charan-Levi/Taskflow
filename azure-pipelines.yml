@@ -257,6 +257,19 @@ stages:
               - task: TerraformInstaller@1
                 inputs:
                   terraformVersion: '$(TF_VERSION)'
+
+              - task: TerraformTask@5
+                displayName: Terraform Init
+                inputs:
+                  provider: 'azurerm'
+                  command: 'init'
+                  workingDirectory: '$(WORKING_DIR)'
+                  backendAzureRmUseEntraIdForAuthentication: false
+                  backendServiceArm: 'azure-connection'
+                  backendAzureRmResourceGroupName: 'rg-bootstrap'
+                  backendAzureRmStorageAccountName: 'storageacc707'
+                  backendAzureRmContainerName: 'tfstate'
+                  backendAzureRmKey: 'envs/dev/terraform.tfstate'
               - task: TerraformTask@5
                 inputs:
                   provider: 'azurerm'
