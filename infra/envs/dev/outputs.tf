@@ -46,3 +46,11 @@ output "kv_vault_id" {
 output "kv_vault_uri" {
   value = module.keyvault.vault_uri
 }
+
+output "eso_client_id" {
+  value = module.identity.eso-client_id
+}
+
+output "eso_object_id" {
+  value = module.identity.eso-object-id
+}
