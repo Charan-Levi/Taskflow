@@ -11,7 +11,7 @@ import java.sql.Connection;
 import java.util.Map;
 
 @RestController
-@RequestMapping("")
+@RequestMapping("/api/java")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class HealthController {

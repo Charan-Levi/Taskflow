@@ -12,33 +12,33 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("")
+@RequestMapping("/api/java")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class TaskController {
     private final TaskService taskService;
 
-    @GetMapping
+    @GetMapping("/tasks")
     public ResponseEntity<List<TaskResponseDto>> list() {
         return ResponseEntity.ok(taskService.list());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/tasks/{id}")
     public ResponseEntity<TaskResponseDto> get(@PathVariable Long id) {
         return ResponseEntity.ok(taskService.get(id));
     }
 
-    @PostMapping
+    @PostMapping("/tasks")
     public ResponseEntity<TaskResponseDto> create(@Valid @RequestBody TaskInputDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskService.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/tasks/{id}")
     public ResponseEntity<TaskResponseDto> update(@PathVariable Long id, @Valid @RequestBody TaskInputDto dto) {
         return ResponseEntity.ok(taskService.update(id, dto));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/tasks/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         taskService.delete(id);
         return ResponseEntity.noContent().build();
