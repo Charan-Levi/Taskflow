@@ -7,6 +7,6 @@ data:
   DB_PORT: "5432"
   DB_NAME: "taskmanager"
   DATABASE_USER: "taskmanager"
-  DATABASE_URL: "postgresql://taskmanager@taskflow-dev-taskflowpsqlserver.postgres.database.azure.com:5432/taskmanager"
+  DATABASE_URL: "jdbc:postgresql://taskmanager@taskflow-dev-taskflowpsqlserver.postgres.database.azure.com:5432/taskmanager"
   JAVA_API_URL: "http://taskflow-java:8080"
   PYTHON_API_URL: "http://taskflow-python:8000"
