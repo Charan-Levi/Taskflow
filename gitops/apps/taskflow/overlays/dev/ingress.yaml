@@ -25,14 +25,14 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: taskflow-java
+                name: backend-java
                 port:
                   number: 8080
           - path: /api/python/
             pathType: Prefix
             backend:
               service:
-                name: taskflow-python
+                name: backend-python
                 port:
                   number: 8000
   tls:
