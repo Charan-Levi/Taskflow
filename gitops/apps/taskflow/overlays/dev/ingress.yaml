@@ -11,7 +11,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: taskflow-dev.centralindia.cloudapp.azure.com
+    - host: dev.taskflow.catlevi.online
       http:
         paths:
           - path: /
@@ -37,5 +37,5 @@ spec:
                   number: 8000
   tls:
     - hosts:
-        - taskflow-dev.centralindia.cloudapp.azure.com
+        - dev.taskflow.catlevi.online
       secretName: taskflow-tls
