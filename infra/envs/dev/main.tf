@@ -66,3 +66,13 @@ module "keyvault" {
   tags                = local.tags
   postgres_pass       = var.postgres_pass
 }
+
+module "identity" {
+  source = "../../modules/identity"
+  environment = "dev"
+  resource_group_name = module.rg.resource_group_name
+  location = module.rg.location
+  keyvault_id = module.keyvault.vault_id
+  aks_oidc_issuer_url = module.aks.oidc_issuer_url
+  tags = local.tags
+}
