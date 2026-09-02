@@ -1,25 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform-cert-manager
+  name: cert-manager
   namespace: argocd
-  labels:
-    app.kubernetes.io/name: platform
-    app.kubernetes.io/part-of: argocd
 spec:
-  project: default
+  project: platform
   source:
-    chart: cert-manager
     repoURL: https://charts.jetstack.io
-    targetRevision: v1.15.0
+    chart: cert-manager
+    targetRevision: v1.17.2
     helm:
       values: |
         installCRDs: true
         webhook:
           enabled: true
-        serviceAccount:
-          annotations:
-            azure.workload.identity/client-id: "" # Set after WI creation
+        prometheus:
+          enabled: true
+          servicemonitor:
+            enabled: true
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager
