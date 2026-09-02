@@ -11,13 +11,13 @@ import java.sql.Connection;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/health")
+@RequestMapping("")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class HealthController {
     private final DataSource dataSource;
 
-    @GetMapping
+    @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         String dbStatus;
         try (Connection conn = dataSource.getConnection()) {

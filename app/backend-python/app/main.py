@@ -25,9 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(analytics_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/python")
 
-@app.get("/api/v1/health")
+@app.get("/api/python/health")
 async def health_v1():
     return {"status": "UP", "service": "Python FastAPI"}
 

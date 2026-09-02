@@ -26,6 +26,8 @@ spec:
             - configMapRef:
                 name: taskflow-config
           env:
+            - name: SERVER_SERVLET_CONTEXT_PATH
+              value: /api/java
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
