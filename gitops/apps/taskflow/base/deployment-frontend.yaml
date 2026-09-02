@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskflow-frontend
+  labels:
+    app: taskflow-frontend
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taskflow-frontend
+  template:
+    metadata:
+      labels:
+        app: taskflow-frontend
+        tier: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: taskflowdevacr.azurecr.io/taskflow/frontend:latest
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5

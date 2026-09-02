@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskflow-java
+  labels:
+    app: taskflow-java
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taskflow-java
+  template:
+    metadata:
+      labels:
+        app: taskflow-java
+        tier: backend
+    spec:
+      containers:
+        - name: backend-java
+          image: taskflowdevacr.azurecr.io/taskflow/backend-java:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: taskflow-config
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: taskflow-db-secret
+                  key: postgres-password
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /api/java/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/java/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
