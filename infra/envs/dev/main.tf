@@ -68,11 +68,11 @@ module "keyvault" {
 }
 
 module "identity" {
-  source = "../../modules/identity"
-  environment = "dev"
+  source              = "../../modules/identity"
+  environment         = "dev"
   resource_group_name = module.rg.resource_group_name
-  location = module.rg.location
-  keyvault_id = module.keyvault.vault_id
+  location            = module.rg.location
+  keyvault_id         = module.keyvault.vault_id
   aks_oidc_issuer_url = module.aks.oidc_issuer_url
-  tags = local.tags
+  tags                = local.tags
 }
