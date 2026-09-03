@@ -7,6 +7,7 @@ on:
   pull_request:
     branches: [main]
     paths: [app/frontend/**]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,7 +27,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - uses: actions/cache@v4
         with:
@@ -52,7 +53,7 @@ jobs:
 
   BuildAndPush:
     needs: CodeScan
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
