@@ -1,0 +1,88 @@
+name: Frontend-CI
+
+on:
+  push:
+    branches: [main]
+    paths: [app/frontend/**]
+  pull_request:
+    branches: [main]
+    paths: [app/frontend/**]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  SERVICE_NAME: frontend
+  ACR_NAME: taskflowdevacr
+  IMAGE_NAME: taskflow/frontend
+  WORKING_DIR: app/frontend
+
+jobs:
+  CodeScan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.WORKING_DIR }}/node_modules
+          key: npm-${{ runner.os }}-${{ hashFiles(format('{0}/package-lock.json', env.WORKING_DIR)) }}
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: ESLint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+        working-directory: ${{ env.WORKING_DIR }}
+
+  BuildAndPush:
+    needs: CodeScan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ─── Azure Login (OIDC) ───
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ─── ACR Login ───
+      - name: ACR Login
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      # ─── Docker Build & Push ───
+      - name: Docker Build and Push
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} -f ${{ env.WORKING_DIR }}/Dockerfile ${{ env.WORKING_DIR }}
+          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker tag ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+
+      # ─── Trivy ───
+      - name: Install Trivy
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+          sudo mv ./bin/trivy /usr/local/bin/trivy
+
+      - name: Trivy Image Scan
+        run: trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress "${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        continue-on-error: true
