@@ -17,7 +17,7 @@ spec:
         installCRDs: true
         serviceAccount:
           annotations:
-            azure.workload.identity/client-id: "3db2b608-9a55-43dc-8dca-d6cb4fd48d7a" # Set via Azure portal after WI creation
+            azure.workload.identity/client-id: "95bcb5b9-557f-4d8f-bf10-a60fd39558b3" # Set via Azure portal after WI creation
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets
