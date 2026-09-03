@@ -3,5 +3,8 @@ kind: Kustomization
 
 resources:
   - ingress-nginx/application.yaml
+  - external-secrets/application.yaml
+  - external-secrets/clustersecretstore.yaml
+  - cert-manager/application.yaml
   - cert-manager/cluster-issuer-staging.yaml
   - cert-manager/cluster-issuer-prod.yaml

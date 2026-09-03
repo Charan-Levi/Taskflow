@@ -1,11 +1,8 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform-external-secrets
+  name: external-secrets
   namespace: argocd
-  labels:
-    app.kubernetes.io/name: platform
-    app.kubernetes.io/part-of: argocd
 spec:
   project: default
   source:
@@ -17,7 +14,7 @@ spec:
         installCRDs: true
         serviceAccount:
           annotations:
-            azure.workload.identity/client-id: "95bcb5b9-557f-4d8f-bf10-a60fd39558b3" # Set via Azure portal after WI creation
+            azure.workload.identity/client-id: "95bcb5b9-557f-4d8f-bf10-a60fd39558b3"
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets
