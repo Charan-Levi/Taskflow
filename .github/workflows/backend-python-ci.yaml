@@ -74,9 +74,10 @@ jobs:
 
       - name: Docker Build and Push
         run: |
-          docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} -f ${{ env.WORKING_DIR }}/Dockerfile ${{ env.WORKING_DIR }}
-          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker tag ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+          SHA_SHORT=${GITHUB_SHA::8}
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${SHA_SHORT} -f ${{ env.WORKING_DIR }}/Dockerfile ${{ env.WORKING_DIR }}
+          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${SHA_SHORT}
+          docker tag ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${SHA_SHORT} ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
           docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
 
       - name: Install Trivy
@@ -85,7 +86,9 @@ jobs:
           sudo mv ./bin/trivy /usr/local/bin/trivy
 
       - name: Trivy Image Scan
-        run: trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress "${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        run: |
+          SHA_SHORT=${GITHUB_SHA::8}
+          trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress "${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${SHA_SHORT}"
         continue-on-error: true
 
       - name: Update GitOps with new image tag
