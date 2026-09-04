@@ -1,0 +1,72 @@
+namespace: monitoring
+
+kube-prometheus-stack:
+  nameOverride: prometheus-stack
+
+  prometheus:
+    prometheusSpec:
+      retention: 15d
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            resources:
+              requests:
+                storage: 10Gi
+          selector: {}
+
+  alertmanager:
+    alertmanagerSpec:
+      storage:
+        volumeClaimTemplate:
+          spec:
+            resources:
+              requests:
+                storage: 2Gi
+          selector: {}
+
+  grafana:
+    enabled: true
+    adminPassword: "Admin@123" # Override via ESO for prod
+    defaultDashboardsTimezone: Asia/Kolkata
+    grafana.ini:
+      server:
+        domain: dev.taskflow.catlevi.online
+        root_url: https://dev.taskflow.catlevi.online/grafana
+        serve_from_sub_path: true
+      auth.anonymous:
+        enabled: false
+
+  nodeExporter:
+    enabled: true
+
+  kubeStateMetrics:
+    enabled: true
+
+  kubelet:
+    enabled: true
+
+  cAdvisor:
+    enabled: true
+
+# Ingress for Grafana (dev environment)
+ingress-nginx:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts:
+    - host: dev.taskflow.catlevi.online
+      paths:
+        - path: /grafana(/|$)(.*)
+          pathType: ImplementationSpecific
+          service:
+            name: prometheus-stack-grafana
+            port: 80
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - dev.taskflow.catlevi.online

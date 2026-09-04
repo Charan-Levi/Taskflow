@@ -2,6 +2,7 @@ ServiceConnenctionDetails.txt
 torunlocally.txt
 TRoubleShootandInstallCmds.txt
 eso-sa.yaml
+eso-values.yaml
 ###########################################################################
 ### Terraform ###
 # Local .terraform directories
