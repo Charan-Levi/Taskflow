@@ -14,6 +14,6 @@ images:
   - name: taskflowdevacr.azurecr.io/taskflow/frontend
     newTag: latest
   - name: taskflowdevacr.azurecr.io/taskflow/backend-java
-    newTag: latest
+    newTag: 94d18246
   - name: taskflowdevacr.azurecr.io/taskflow/backend-python
     newTag: 2ea11771
