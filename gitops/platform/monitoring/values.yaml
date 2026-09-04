@@ -48,24 +48,24 @@ kube-prometheus-stack:
   cAdvisor:
     enabled: true
 
-# Ingress for Grafana (dev environment)
-ingress-nginx:
-  enabled: true
-  className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-  hosts:
-    - host: dev.taskflow.catlevi.online
-      paths:
-        - path: /grafana(/|$)(.*)
-          pathType: ImplementationSpecific
-          service:
-            name: prometheus-stack-grafana
-            port: 80
+  # # Ingress for Grafana (dev environment)
+  # ingress-nginx:
+  #   enabled: true
+  #   className: nginx
+  #   annotations:
+  #     cert-manager.io/cluster-issuer: letsencrypt-prod
+  #     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  #     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  #     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  #     nginx.ingress.kubernetes.io/rewrite-target: /$2
+  #   hosts:
+  #     - host: dev.taskflow.catlevi.online
+  #       paths:
+  #         - path: /grafana(/|$)(.*)
+  #           pathType: ImplementationSpecific
+  #           service:
+  #             name: prometheus-stack-grafana
+  #             port: 80
   tls:
     - secretName: grafana-tls
       hosts:
