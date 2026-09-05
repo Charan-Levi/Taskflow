@@ -25,5 +25,5 @@ resource "azurerm_key_vault_secret" "kvsecret" {
   key_vault_id = azurerm_key_vault.kv.id
   name         = "postgres-password"
   value        = var.postgres_pass
-  depends_on = [time_sleep.wait_for_rbac]
+  depends_on   = [time_sleep.wait_for_rbac]
 }
