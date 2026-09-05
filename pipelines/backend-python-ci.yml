@@ -18,90 +18,90 @@ pr:
 
 variables:
   - name: SERVICE_NAME
-    value: 'backend-python'
+    value: "backend-python"
   - name: ACR_NAME
-    value: 'taskflowdevacr'
+    value: "taskflowdevacr"
   - name: IMAGE_NAME
-    value: 'taskflow/backend-python'
+    value: "taskflow/backend-python"
   - name: IMAGE_TAG
-    value: '$(Build.SourceVersion)'
+    value: "$(Build.SourceVersion)"
   - name: WORKING_DIR
-    value: 'app/backend-python'
+    value: "app/backend-python"
 
 stages:
   # ─────────────────────────────────────────────
   # Stage 1: Code Scanning
   # ─────────────────────────────────────────────
   - stage: CodeScan
-    displayName: 'Static Code Analysis'
+    displayName: "Static Code Analysis"
     jobs:
       - job: ScanCode
-        displayName: 'Lint, Type Check, Security Scan'
+        displayName: "Lint, Type Check, Security Scan"
         pool:
-          vmImage: 'ubuntu-latest'
+          vmImage: "ubuntu-latest"
         steps:
           - checkout: self
-          
+
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: '3.12'
-            displayName: 'Setup Python 3.12'
+              versionSpec: "3.12"
+            displayName: "Setup Python 3.12"
 
           - script: |
               python -m pip install --upgrade pip
               pip install -r $(WORKING_DIR)/requirements.txt
               pip install bandit safety ruff mypy
-            displayName: 'Install Dependencies + Security Tools'
+            displayName: "Install Dependencies + Security Tools"
 
           # ─── Ruff (fast linter, replaces flake8/pylint) ───
           - script: |
               cd $(WORKING_DIR)
               ruff check app/
-            displayName: 'Ruff Lint'
+            displayName: "Ruff Lint"
             continueOnError: true
 
           # ─── mypy (type checker) ───
           - script: |
               cd $(WORKING_DIR)
               mypy app/ --ignore-missing-imports
-            displayName: 'mypy Type Check'
+            displayName: "mypy Type Check"
             continueOnError: true
 
           # ─── Bandit (security linter) ───
           - script: |
               cd $(WORKING_DIR)
               bandit -r app/ -lll
-            displayName: 'Bandit Security Scan'
+            displayName: "Bandit Security Scan"
             continueOnError: true
-          
+
           # ─── Safety (vulnerable dependency scan) ───
           - script: |
               cd $(WORKING_DIR)
               safety check --file=$(WORKING_DIR)/requirements.txt
-            displayName: 'Safety Dependency Scan'
+            displayName: "Safety Dependency Scan"
             continueOnError: true
-          
+
           # ─── pytest (unit tests) ───
           - script: |
               cd $(WORKING_DIR)
               python -m pytest tests/ --junitxml=test-results.xml
-            displayName: 'Run Unit Tests'
+            displayName: "Run Unit Tests"
             condition: succeededOrFailed()
             continueOnError: true
-          
+
           - task: PublishTestResults@2
             condition: succeededOrFailed()
             inputs:
               testResultsFormat: JUnit
-              testResultsFiles: '$(WORKING_DIR)/test-results.xml'
-            displayName: 'Publish Test Results'
+              testResultsFiles: "$(WORKING_DIR)/test-results.xml"
+            displayName: "Publish Test Results"
             continueOnError: true
 
   # ─────────────────────────────────────────────
   # Stage 2: Build, Scan, Sign, Push
   # ─────────────────────────────────────────────
   - stage: BuildAndPush
-    displayName: 'Build, Scan, Sign, Push Image'
+    displayName: "Build, Scan, Sign, Push Image"
     dependsOn: CodeScan
     condition: |
       and(
@@ -110,24 +110,27 @@ stages:
       )
     jobs:
       - job: BuildScanSignPush
-        displayName: 'Container Lifecycle'
+        displayName: "Container Lifecycle"
         pool:
-          vmImage: 'ubuntu-latest'
+          vmImage: "ubuntu-latest"
         steps:
           - checkout: self
           - task: AzureCLI@3
-            displayName: 'ACR Login (OIDC)'
+            displayName: "ACR Login (OIDC)"
             inputs:
-              connectionType: 'azureRM'
-              azureSubscription: 'azure-connection'
-              scriptType: 'bash'
-              scriptLocation: 'inlineScript'
-              inlineScript: 'az acr login --name $(ACR_NAME)'
+              connectionType: "azureRM"
+              azureSubscription: "azure-connection"
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: "az acr login --name $(ACR_NAME)"
               addSpnToEnvironment: true
           - script: |
-              docker build -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) -f $(WORKING_DIR)/Dockerfile $(WORKING_DIR)
-              docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)
-              docker tag $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
+              SHA_SHORT=$(echo "$(Build.SourceVersion)" | cut -c1-8)
+              echo "##vso[task.setvariable variable=SHA_SHORT;isOutput=true]$SHA_SHORT"
+              echo "Building backend-python with SHA_SHORT: $SHA_SHORT"
+              docker build -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$SHA_SHORT -f $(WORKING_DIR)/Dockerfile $(WORKING_DIR)
+              docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$SHA_SHORT
+              docker tag $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$SHA_SHORT $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
               docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
             displayName: Docker Build And Push
 
@@ -136,7 +139,7 @@ stages:
               curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
               sudo mv ./bin/trivy /usr/local/bin/trivy
               trivy --version
-            displayName: 'Install Trivy'
+            displayName: "Install Trivy"
 
           # ─── 4. Image vulnerability scan ───
           - script: |
@@ -145,7 +148,7 @@ stages:
                 --exit-code 1 \
                 --no-progress \
                 "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
-            displayName: 'Trivy Image Scan (HIGH/CRITICAL fails build)'
+            displayName: "Trivy Image Scan (HIGH/CRITICAL fails build)"
             continueOnError: true
 
           # # ─── 5. Install Cosign ───
@@ -171,3 +174,29 @@ stages:
           #         "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
           #   env:
           #     COSIGN_EXPERIMENTAL: '1'
+  - stage: UpdateGitOps
+    displayName: "Update GitOps"
+    dependsOn: BuildAndPush
+    condition: succeeded()
+    jobs:
+      - job: UpdateGitOps
+        displayName: "Commit SHA to GitOps"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - checkout: self
+            persistCredentials: true
+          - script: |
+              SHA_SHORT=$(echo "$(Build.SourceVersion)" | cut -c1-8)
+              echo "Updating backend-python image to sha-$SHA_SHORT"
+              sed -i '/taskflow\/backend-python/,/newTag:/s/newTag: .*/newTag: '"$SHA_SHORT"'/' gitops/apps/taskflow/overlays/dev/kustomization.yaml
+              git config user.name "azure-pipelines[bot]"
+              git config user.email "azure-pipelines[bot]@users.noreply.github.com"
+              git add gitops/apps/taskflow/overlays/dev/kustomization.yaml
+              if git diff --staged --stat | grep -q .; then
+                git commit -m "ci: update backend-python image to sha-$SHA_SHORT"
+                git push
+              else
+                echo "No changes to commit"
+              fi
+            displayName: "Update GitOps with new image tag"

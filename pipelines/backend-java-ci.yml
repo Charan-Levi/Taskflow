@@ -122,10 +122,13 @@ stages:
               inlineScript: 'az acr login --name $(ACR_NAME)'
               addSpnToEnvironment: true
           - script: |
-              docker build -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) -f $(WORKING_DIR)/Dockerfile $(WORKING_DIR)
-              docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)
-              docker tag $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG) $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
-              docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
+                SHA_SHORT=$(echo "$(Build.SourceVersion)" | cut -c1-8)
+                echo "##vso[task.setvariable variable=SHA_SHORT;isOutput=true]$SHA_SHORT"
+                echo "Building backend-java with SHA_SHORT: $SHA_SHORT"
+                docker build -t $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$SHA_SHORT -f $(WORKING_DIR)/Dockerfile $(WORKING_DIR)
+                docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$SHA_SHORT
+                docker tag $(ACR_NAME).azurecr.io/$(IMAGE_NAME):$SHA_SHORT $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
+                docker push $(ACR_NAME).azurecr.io/$(IMAGE_NAME):latest
             displayName: Docker Build And Push
 
           # ─── 3. Install Trivy ───
@@ -168,3 +171,29 @@ stages:
           #         "$(ACR_NAME).azurecr.io/$(IMAGE_NAME):$(IMAGE_TAG)"
           #   env:
           #     COSIGN_EXPERIMENTAL: '1'
+  - stage: UpdateGitOps
+    displayName: 'Update GitOps'
+    dependsOn: BuildAndPush
+    condition: succeeded()
+    jobs:
+      - job: UpdateGitOps
+        displayName: 'Commit SHA to GitOps'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+            persistCredentials: true
+          - script: |
+              SHA_SHORT=$(echo "$(Build.SourceVersion)" | cut -c1-8)
+              echo "Updating backend-java image to sha-$SHA_SHORT"
+              sed -i '/taskflow\/backend-java/,/newTag:/s/newTag: .*/newTag: '"$SHA_SHORT"'/' gitops/apps/taskflow/overlays/dev/kustomization.yaml
+              git config user.name "azure-pipelines[bot]"
+              git config user.email "azure-pipelines[bot]@users.noreply.github.com"
+              git add gitops/apps/taskflow/overlays/dev/kustomization.yaml
+              if git diff --staged --stat | grep -q .; then
+                git commit -m "ci: update backend-java image to sha-$SHA_SHORT"
+                git push
+              else
+                echo "No changes to commit"
+              fi
+            displayName: 'Update GitOps with new image tag'
