@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: taskflow-qa-ingress
+  namespace: taskflow-qa
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: qa.taskflow.catlevi.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: taskflow-frontend
+                port:
+                  number: 80
+          - path: /api/java/
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-java
+                port:
+                  number: 8080
+          - path: /api/python/
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-python
+                port:
+                  number: 8000
+  tls:
+    - hosts:
+        - qa.taskflow.catlevi.online
+      secretName: taskflow-qa-tls
