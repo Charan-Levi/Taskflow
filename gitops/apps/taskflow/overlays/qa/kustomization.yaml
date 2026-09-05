@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: taskflow
+namespace: taskflow-qa
 
 bases:
   - ../../base
@@ -9,13 +9,21 @@ bases:
 resources:
   - namespace.yaml
   - ingress.yaml
+  - certificate.yaml
   - clustersecretstore.yaml
+  - serviceaccount.yaml
   - externalsecret.yaml
 
+patches:
+  - path: patch-configmap.yaml
+    target:
+      kind: ConfigMap
+      name: taskflow-config
+      
 images:
   - name: taskflowdevacr.azurecr.io/taskflow/frontend
-    newTag: "d1c8c126"
+    newTag: latest
   - name: taskflowdevacr.azurecr.io/taskflow/backend-java
-    newTag: "67781632"
+    newTag: latest
   - name: taskflowdevacr.azurecr.io/taskflow/backend-python
-    newTag: "7ade61cb"
+    newTag: latest

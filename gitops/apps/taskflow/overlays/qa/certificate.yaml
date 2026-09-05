@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: taskflow-qa-tls
+  namespace: taskflow-qa
+spec:
+  secretName: taskflow-qa-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - qa.taskflow.catlevi.online

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taskflow-qa
+  namespace: argocd
+  labels:
+    app: taskflow-qa
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Charan-Levi/Taskflow.git
+    targetRevision: main
+    path: gitops/apps/taskflow/overlays/qa
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: taskflow-qa
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
