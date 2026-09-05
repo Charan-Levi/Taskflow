@@ -6,8 +6,8 @@ locals {
     "ManagedBy"   = "Terraform"
     "Owner"       = "Charan-Levi"
   }
-  dev_resource_group   = "rg-taskflow-dev"
-  qa_resource_group    = "rg-taskflow-qa"
+  dev_resource_group = "rg-taskflow-dev"
+  qa_resource_group  = "rg-taskflow-qa"
 }
 
 data "azurerm_postgresql_flexible_server" "dev_pg" {
@@ -51,10 +51,4 @@ resource "azurerm_postgresql_flexible_server_database" "qa_db" {
   server_id = data.azurerm_postgresql_flexible_server.dev_pg.id
   charset   = "UTF8"
   collation = "en_US.utf8"
-}
-
-resource "azurerm_role_assignment" "qa_identity_keyvault" {
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = module.identity.eso-object-id
-  scope                = module.keyvault.vault_id
 }
