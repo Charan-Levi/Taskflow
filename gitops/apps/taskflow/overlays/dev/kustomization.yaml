@@ -16,4 +16,4 @@ images:
   - name: taskflowdevacr.azurecr.io/taskflow/backend-java
     newTag: 67781632
   - name: taskflowdevacr.azurecr.io/taskflow/backend-python
-    newTag: 2ea11771
+    newTag: 7ade61cb
