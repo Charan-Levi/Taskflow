@@ -19,7 +19,14 @@ patches:
     target:
       kind: ConfigMap
       name: taskflow-config
-      
+  - path: patch-java-db-secret.yaml
+    target:
+      kind: Deployment
+      name: taskflow-java
+  - path: patch-python-db-secret.yaml
+    target:
+      kind: Deployment
+      name: taskflow-python
 images:
   - name: taskflowdevacr.azurecr.io/taskflow/frontend
     newTag: latest
