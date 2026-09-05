@@ -55,6 +55,6 @@ resource "azurerm_postgresql_flexible_server_database" "qa_db" {
 
 resource "azurerm_role_assignment" "qa_identity_keyvault" {
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = module.identity.eso_object_id
+  principal_id         = module.identity.eso-object-id
   scope                = module.keyvault.vault_id
 }

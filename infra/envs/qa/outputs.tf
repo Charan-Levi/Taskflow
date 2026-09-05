@@ -11,11 +11,11 @@ output "keyvault_id" {
 }
 
 output "eso_client_id" {
-  value = module.identity.eso_client_id
+  value = module.identity.eso-client_id
 }
 
 output "eso_object_id" {
-  value = module.identity.eso_object_id
+  value = module.identity.eso-object-id
 }
 
 output "pg_server_fqdn" {
