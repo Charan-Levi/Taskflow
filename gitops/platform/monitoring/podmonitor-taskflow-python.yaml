@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: taskflow-python
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - taskflow
+  selector:
+    matchLabels:
+      app: taskflow-python
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics
+      scheme: http
