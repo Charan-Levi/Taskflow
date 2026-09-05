@@ -7,7 +7,6 @@ locals {
     "Owner"       = "Charan-Levi"
   }
   dev_resource_group = "rg-taskflow-dev"
-  qa_resource_group  = "rg-taskflow-qa"
 }
 
 data "azurerm_postgresql_flexible_server" "dev_pg" {
