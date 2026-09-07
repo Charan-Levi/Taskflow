@@ -42,6 +42,7 @@ jobs:
 
       - name: Push to prod ACR
         run: |
+          az acr login --name ${{ env.SOURCE_ACR }}
           az acr login --name ${{ env.PROD_ACR }}
           echo "Pushing ${{ inputs.service }}:${{ env.SERVICE_SHA }}"
           docker pull ${{ env.SOURCE_ACR }}.azurecr.io/taskflow/${{ inputs.service }}:${{ env.SERVICE_SHA }}
