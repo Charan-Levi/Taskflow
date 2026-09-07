@@ -32,6 +32,6 @@ images:
   - name: taskflowprodacr.azurecr.io/taskflow/frontend
     newTag: "c75f8eb6"
   - name: taskflowprodacr.azurecr.io/taskflow/backend-java
-    newTag: latest
+    newTag: "757ed132"
   - name: taskflowprodacr.azurecr.io/taskflow/backend-python
     newTag: latest
