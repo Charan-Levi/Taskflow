@@ -76,6 +76,6 @@ module "identity" {
   location            = module.rg.location
   keyvault_id         = module.keyvault.vault_id
   aks_oidc_issuer_url = module.aks.oidc_issuer_url
-  fic_subject         = "system:serviceaccount:external-secrets:external-secrets"
+  fic_subject         = "system:serviceaccount:taskflow-prod:external-secrets"
   tags                = local.tags
 }
