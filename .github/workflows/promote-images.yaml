@@ -3,9 +3,6 @@ name: Promote Images
 on:
   workflow_dispatch:
     inputs:
-      source_tag:
-        description: "Image SHA tag to promote (e.g., abc1234)"
-        required: true
       target_env:
         description: "Target environment"
         required: true
@@ -13,11 +10,9 @@ on:
         options:
           - qa
           - prod
-
 permissions:
   contents: write
   id-token: write
-
 env:
   SOURCE_ACR: taskflowdevacr
   QA_ACR: taskflowdevacr
@@ -28,13 +23,21 @@ jobs:
   promote:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Get SHA from dev overlay
+        id: get_sha
+        run: |
+          SHA=$(grep -A1 "taskflow/frontend" gitops/apps/taskflow/overlays/dev/kustomization.yaml | grep newTag | sed 's/.*newTag: *"\?\([^"]*\)"\?/\1/')
+          echo "DEV_SHA=$SHA" >> $GITHUB_ENV
+          echo "Using SHA: $SHA from dev overlay"
+
       - name: Login to target ACR
         run: |
           if [[ "${{ inputs.target_env }}" == "prod" ]]; then
@@ -49,50 +52,45 @@ jobs:
       - name: Pull, tag and push images
         run: |
           for SERVICE in ${{ env.SERVICES }}; do
-            echo "Promoting $SERVICE:${{ inputs.source_tag }} to $TARGET_ACR/$SERVICE:${{ inputs.source_tag }}"
-            docker pull ${{ env.SOURCE_ACR }}.azurecr.io/taskflow/$SERVICE:${{ inputs.source_tag }}
-            docker tag ${{ env.SOURCE_ACR }}.azurecr.io/taskflow/$SERVICE:${{ inputs.source_tag }} $TARGET_ACR.azurecr.io/taskflow/$SERVICE:${{ inputs.source_tag }}
-            docker push $TARGET_ACR.azurecr.io/taskflow/$SERVICE:${{ inputs.source_tag }}
+            echo "Promoting $SERVICE:${{ env.DEV_SHA }} to ${{ env.TARGET_ACR }}/taskflow/$SERVICE:${{ env.DEV_SHA }}"
+            docker pull ${{ env.SOURCE_ACR }}.azurecr.io/taskflow/$SERVICE:${{ env.DEV_SHA }}
+            docker tag ${{ env.SOURCE_ACR }}.azurecr.io/taskflow/$SERVICE:${{ env.DEV_SHA }} ${{ env.TARGET_ACR }}.azurecr.io/taskflow/$SERVICE:${{ env.DEV_SHA }}
+            docker push ${{ env.TARGET_ACR }}.azurecr.io/taskflow/$SERVICE:${{ env.DEV_SHA }}
+            docker rmi ${{ env.SOURCE_ACR }}.azurecr.io/taskflow/$SERVICE:${{ env.DEV_SHA }} ${{ env.TARGET_ACR }}.azurecr.io/taskflow/$SERVICE:${{ env.DEV_SHA }}
           done
 
-      - name: Update GitOps for target environment
+      - name: Update GitOps for QA environment
         if: inputs.target_env == 'qa'
         run: |
-          SHA_SHORT=${{ inputs.source_tag }}
-          for SERVICE in ${{ env.SERVICES }}; do
-            if [[ "$SERVICE" == "frontend" ]]; then
-              sed -i "/taskflow\/frontend/,/newTag:/s/newTag: .*/newTag: \"$SHA_SHORT\"/" gitops/apps/taskflow/overlays/qa/kustomization.yaml
-            elif [[ "$SERVICE" == "backend-java" ]]; then
-              sed -i "/taskflow\/backend-java/,/newTag:/s/newTag: .*/newTag: \"$SHA_SHORT\"/" gitops/apps/taskflow/overlays/qa/kustomization.yaml
-            elif [[ "$SERVICE" == "backend-python" ]]; then
-              sed -i "/taskflow\/backend-python/,/newTag:/s/newTag: .*/newTag: \"$SHA_SHORT\"/" gitops/apps/taskflow/overlays/qa/kustomization.yaml
-            fi
-          done
+          SHA=${{ env.DEV_SHA }}
+          sed -i "/taskflow\/frontend/,/newTag:/s/newTag: .*/newTag: \"$SHA\"/" gitops/apps/taskflow/overlays/qa/kustomization.yaml
+          sed -i "/taskflow\/backend-java/,/newTag:/s/newTag: .*/newTag: \"$SHA\"/" gitops/apps/taskflow/overlays/qa/kustomization.yaml
+          sed -i "/taskflow\/backend-python/,/newTag:/s/newTag: .*/newTag: \"$SHA\"/" gitops/apps/taskflow/overlays/qa/kustomization.yaml
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add gitops/apps/taskflow/overlays/qa/kustomization.yaml
           if git diff --staged --stat | grep -q .; then
-            git commit -m "promote: qa images to sha-$SHA_SHORT"
+            git commit -m "promote: qa images to sha-$SHA"
             git push
+          else
+            echo "No changes to commit"
           fi
 
-      - name: Update GitOps for prod environment
+      - name: Update GitOps for Prod environment
         if: inputs.target_env == 'prod'
         run: |
-          SHA_SHORT=${{ inputs.source_tag }}
-          for SERVICE in ${{ env.SERVICES }}; do
-            if [[ "$SERVICE" == "frontend" ]]; then
-              sed -i "/taskflow\/frontend/,/newTag:/s/newTag: .*/newTag: \"$SHA_SHORT\"/" gitops/apps/taskflow/overlays/prod/kustomization.yaml
-            elif [[ "$SERVICE" == "backend-java" ]]; then
-              sed -i "/taskflow\/backend-java/,/newTag:/s/newTag: .*/newTag: \"$SHA_SHORT\"/" gitops/apps/taskflow/overlays/prod/kustomization.yaml
-            elif [[ "$SERVICE" == "backend-python" ]]; then
-              sed -i "/taskflow\/backend-python/,/newTag:/s/newTag: .*/newTag: \"$SHA_SHORT\"/" gitops/apps/taskflow/overlays/prod/kustomization.yaml
-            fi
-          done
+          SHA=${{ env.DEV_SHA }}
+          # Change ACR reference in prod overlay images
+          sed -i "s|${{ env.SOURCE_ACR }}|${{ env.PROD_ACR }}|g" gitops/apps/taskflow/overlays/prod/kustomization.yaml
+          sed -i "/taskflow\/frontend/,/newTag:/s/newTag: .*/newTag: \"$SHA\"/" gitops/apps/taskflow/overlays/prod/kustomization.yaml
+          sed -i "/taskflow\/backend-java/,/newTag:/s/newTag: .*/newTag: \"$SHA\"/" gitops/apps/taskflow/overlays/prod/kustomization.yaml
+          sed -i "/taskflow\/backend-python/,/newTag:/s/newTag: .*/newTag: \"$SHA\"/" gitops/apps/taskflow/overlays/prod/kustomization.yaml
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add gitops/apps/taskflow/overlays/prod/kustomization.yaml
           if git diff --staged --stat | grep -q .; then
-            git commit -m "promote: prod images to sha-$SHA_SHORT"
+            git commit -m "promote: prod images to sha-$SHA"
             git push
+          else
+            echo "No changes to commit"
           fi
