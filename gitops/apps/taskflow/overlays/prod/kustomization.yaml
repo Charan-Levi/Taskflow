@@ -29,9 +29,9 @@ patches:
       name: taskflow-python
       
 images:
-  - name: taskflowdevacr.azurecr.io/taskflow/frontend
+  - name: taskflowprodacr.azurecr.io/taskflow/frontend
+    newTag: "c75f8eb6"
+  - name: taskflowprodacr.azurecr.io/taskflow/backend-java
     newTag: latest
-  - name: taskflowdevacr.azurecr.io/taskflow/backend-java
-    newTag: latest
-  - name: taskflowdevacr.azurecr.io/taskflow/backend-python
+  - name: taskflowprodacr.azurecr.io/taskflow/backend-python
     newTag: latest
