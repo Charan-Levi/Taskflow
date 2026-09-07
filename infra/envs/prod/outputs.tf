@@ -47,5 +47,5 @@ output "kv_vault_id" {
 }
 
 output "eso_client_id" {
-  value = module.identity.eso_client_id
+  value = module.identity.eso-client_id
 }
