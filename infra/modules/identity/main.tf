@@ -9,7 +9,7 @@ resource "azurerm_federated_identity_credential" "eso-fic" {
   name                      = "fic-eso-${var.environment}"
   user_assigned_identity_id = azurerm_user_assigned_identity.eso.id
   issuer                    = var.aks_oidc_issuer_url
-  subject                   = "system:serviceaccount:external-secrets:external-secrets"
+  subject                   = var.fic_subject
   audience                  = ["api://AzureADTokenExchange"]
 }
 

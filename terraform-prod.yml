@@ -1,4 +1,4 @@
-name: Terraform Infrastructure DEV
+name: Terraform Infrastructure PROD
 
 parameters:
   - name: action
@@ -16,14 +16,14 @@ trigger:
       - main
   paths:
     include:
-      - infra/envs/dev/**
+      - infra/envs/prod/**
 pr:
   branches:
     include:
       - main
   paths:
     include:
-      - infra/envs/dev/**
+      - infra/envs/prod/**
 
 # schedules:
 #   - cron: "0 21 * * 5"
@@ -38,7 +38,7 @@ variables:
   - name: TF_VERSION
     value: "1.15.8"
   - name: WORKING_DIR
-    value: infra/envs/dev
+    value: infra/envs/prod
 
 stages:
   #-----------------------------------------------------------
@@ -123,7 +123,7 @@ stages:
               backendAzureRmResourceGroupName: 'rg-bootstrap'
               backendAzureRmStorageAccountName: 'storageacc707'
               backendAzureRmContainerName: 'tfstate'
-              backendAzureRmKey: 'envs/dev/terraform.tfstate'
+              backendAzureRmKey: 'envs/prod/terraform.tfstate'
 
           - script: |
               curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
@@ -131,7 +131,7 @@ stages:
               infracost breakdown --path=$(WORKING_DIR) --format=json --out-file=/tmp/infracost.json
               infracost output --path=/tmp/infracost.json --format=table
               if [ "$(Build.Reason)" = "PullRequest" ]; then
-                infracost comment azuredevops \
+                infracost comment azureqaops \
                   --path=/tmp/infracost.json \
                   --repo-url=$(Build.Repository.Uri) \
                   --pull-request=$(System.PullRequest.PullRequestNumber) \
@@ -167,7 +167,7 @@ stages:
                ARM_TENANT_ID: $(ARM-TENANT-ID)
                ARM_CLIENT_ID: $(ARM-CLIENT-ID)
                ARM_USE_OIDC: true
-               TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
+               TF_VAR_postgres_pass: $(PROD-POSTGRES-PASSWORD)
 
           - task: PublishPipelineArtifact@1
             displayName: 'Publish plan artifact'
@@ -179,12 +179,12 @@ stages:
             displayName: 'Publish plan text artifact'
             inputs:
               targetPath: '$(WORKING_DIR)/tfplan.txt'
-              artifact: 'terraform-plan-text-dev'
+              artifact: 'terraform-plan-text-prod'
   # ─────────────────────────────────────────────
-  # Stage 3: Apply (DEV)
+  # Stage 3: Apply (PROD)
   # ─────────────────────────────────────────────
   - stage: TerraformApply
-    displayName: Terraform Apply (DEV)
+    displayName: Terraform Apply (PROD)
     dependsOn: Plan
     condition: |
             and(
@@ -202,10 +202,10 @@ stages:
               )
             )
     jobs:
-      - deployment: applyDev
+      - deployment: applyPROD
         pool:
           vmImage: 'ubuntu-latest'
-        environment: Dev
+        environment: PROD
         strategy:
           runOnce:
             deploy:
@@ -230,7 +230,7 @@ stages:
                     backendAzureRmResourceGroupName: 'rg-bootstrap'
                     backendAzureRmStorageAccountName: 'storageacc707'
                     backendAzureRmContainerName: 'tfstate'
-                    backendAzureRmKey: 'envs/dev/terraform.tfstate'
+                    backendAzureRmKey: 'envs/prod/terraform.tfstate'
                 - task: TerraformTask@5
                   inputs:
                     provider: 'azurerm'
@@ -240,15 +240,15 @@ stages:
                     environmentServiceNameAzureRM: 'azure-connection'
                   displayName: Terraform Apply
                   env:
-                    TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
+                    TF_VAR_postgres_pass: $(PROD-POSTGRES-PASSWORD)
   - stage: TerraformDestroy
     condition: eq('${{ parameters.action }}', 'destroy')
-    displayName: Terraform Destroy (DEV)
+    displayName: Terraform Destroy (PROD)
     pool:
       vmImage: 'ubuntu-latest'
     jobs:
       - deployment: 
-        environment: dev-destroy
+        environment: prod-destroy
         strategy:
           runOnce:
             deploy:
@@ -269,7 +269,7 @@ stages:
                   backendAzureRmResourceGroupName: 'rg-bootstrap'
                   backendAzureRmStorageAccountName: 'storageacc707'
                   backendAzureRmContainerName: 'tfstate'
-                  backendAzureRmKey: 'envs/dev/terraform.tfstate'
+                  backendAzureRmKey: 'envs/prod/terraform.tfstate'
               - task: TerraformTask@5
                 inputs:
                   provider: 'azurerm'
@@ -279,4 +279,4 @@ stages:
                   environmentServiceNameAzureRM: 'azure-connection'
                 displayName: Terraform Destroy
                 env:
-                  TF_VAR_postgres_pass: $(POSTGRES-PASSWORD)
+                  TF_VAR_postgres_pass: $(PROD-POSTGRES-PASSWORD)

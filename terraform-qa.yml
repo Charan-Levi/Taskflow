@@ -25,13 +25,13 @@ pr:
     include:
       - infra/envs/qa/**
 
-schedules:
-  - cron: "0 21 * * 5"
-    displayName: Every Friday at 9:00 PM
-    branches:
-      include:
-        - main
-    always: true
+# schedules:
+#   - cron: "0 21 * * 5"
+#     displayName: Every Friday at 9:00 PM
+#     branches:
+#       include:
+#         - main
+#     always: true
 
 variables:
   - group: terraform-variables

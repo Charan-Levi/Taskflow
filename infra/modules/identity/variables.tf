@@ -32,3 +32,7 @@ variable "aks_oidc_issuer_url" {
 variable "keyvault_id" {
   type = string
 }
+
+variable "fic_subject" {
+  type = string
+}

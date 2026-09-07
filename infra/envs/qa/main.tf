@@ -42,6 +42,7 @@ module "identity" {
   location            = "centralindia"
   keyvault_id         = module.keyvault.vault_id
   aks_oidc_issuer_url = data.azurerm_kubernetes_cluster.aks.oidc_issuer_url
+  fic_subject = "system:serviceaccount:taskflow-qa:external-secrets"
   tags                = local.tags
 }
 
