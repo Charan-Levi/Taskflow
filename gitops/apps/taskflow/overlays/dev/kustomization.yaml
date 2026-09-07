@@ -11,6 +11,7 @@ resources:
   - ingress.yaml
   - clustersecretstore.yaml
   - externalsecret.yaml
+  - serviceaccount.yaml
 
 images:
   - name: taskflowdevacr.azurecr.io/taskflow/frontend
