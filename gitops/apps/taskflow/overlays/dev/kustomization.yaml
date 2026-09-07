@@ -14,7 +14,7 @@ resources:
 
 images:
   - name: taskflowdevacr.azurecr.io/taskflow/frontend
-    newTag: "d1c8c126"
+    newTag: "c75f8eb6"
   - name: taskflowdevacr.azurecr.io/taskflow/backend-java
     newTag: "67781632"
   - name: taskflowdevacr.azurecr.io/taskflow/backend-python
