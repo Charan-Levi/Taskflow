@@ -1,0 +1,255 @@
+{
+  "dashboard": {
+    "title": "Taskflow - Dev & QA Monitoring",
+    "uid": "taskflow-dev-qa",
+    "tags": ["taskflow", "dev", "qa", "kubernetes"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate (req/s) - All Services",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (namespace, service, method, status) (rate(http_server_requests_seconds_count{namespace=~\"taskflow|taskflow-qa\"}[1m]))",
+            "legendFormat": "{{namespace}} - {{service}} - {{method}} {{status}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "reqps", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 2,
+        "title": "95th Percentile Latency (s)",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum by (le, namespace, service) (rate(http_server_requests_seconds_bucket{namespace=~\"taskflow|taskflow-qa\"}[5m])))",
+            "legendFormat": "{{namespace}} - {{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "s", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 3,
+        "title": "Error Rate (5xx) - All Services",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (namespace, service) (rate(http_server_requests_seconds_count{namespace=~\"taskflow|taskflow-qa\",status=~\"5..\"}[1m]))",
+            "legendFormat": "{{namespace}} - {{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "reqps", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.1}]}}
+        }
+      },
+      {
+        "id": 4,
+        "title": "JVM Heap Usage - Java Services",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{namespace=~\"taskflow|taskflow-qa\",area=\"heap\"} / jvm_memory_max_bytes{namespace=~\"taskflow|taskflow-qa\",area=\"heap\"} * 100",
+            "legendFormat": "{{namespace}} - {{pod}} - Heap %"
+          },
+          {
+            "expr": "jvm_memory_used_bytes{namespace=~\"taskflow|taskflow-qa\",area=\"nonheap\"} / jvm_memory_max_bytes{namespace=~\"taskflow|taskflow-qa\",area=\"nonheap\"} * 100",
+            "legendFormat": "{{namespace}} - {{pod}} - Non-Heap %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]}}
+        }
+      },
+      {
+        "id": 5,
+        "title": "Python Request Duration - p50/p95/p99",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum by (le, namespace) (rate(http_request_duration_seconds_bucket{namespace=~\"taskflow|taskflow-qa\"}[5m])))",
+            "legendFormat": "{{namespace}} - p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum by (le, namespace) (rate(http_request_duration_seconds_bucket{namespace=~\"taskflow|taskflow-qa\"}[5m])))",
+            "legendFormat": "{{namespace}} - p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum by (le, namespace) (rate(http_request_duration_seconds_bucket{namespace=~\"taskflow|taskflow-qa\"}[5m])))",
+            "legendFormat": "{{namespace}} - p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "s", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 6,
+        "title": "Pod CPU Usage (cores)",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{namespace=~\"taskflow|taskflow-qa\",container!=\"POD\",container!=\"\"}[1m]))",
+            "legendFormat": "{{namespace}} - {{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "cores", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 7,
+        "title": "Pod Memory Usage (MiB)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (namespace, pod) (container_memory_usage_bytes{namespace=~\"taskflow|taskflow-qa\",container!=\"POD\",container!=\"\"}) / 1024 / 1024",
+            "legendFormat": "{{namespace}} - {{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "MiB", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 8,
+        "title": "Pod Restarts",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 24, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum by (namespace, pod) (kube_pod_container_status_restarts_total{namespace=~\"taskflow|taskflow-qa\"})",
+            "legendFormat": "{{namespace}} - {{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}
+        }
+      },
+      {
+        "id": 9,
+        "title": "Pod Status",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 24, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "kube_pod_status_phase{namespace=~\"taskflow|taskflow-qa\",phase=\"Running\"}",
+            "legendFormat": "{{namespace}} - {{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"mappings": [{"type": "value", "options": {"1": {"text": "Running", "color": "green"}, "0": {"text": "Not Running", "color": "red"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}
+        }
+      },
+      {
+        "id": 10,
+        "title": "Ingress Requests - By Host",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 32, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (host, namespace) (rate(nginx_ingress_controller_requests{namespace=~\"taskflow|taskflow-qa\"}[1m]))",
+            "legendFormat": "{{namespace}} - {{host}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "reqps", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 11,
+        "title": "Ingress Latency p95",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 32, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum by (le, host, namespace) (rate(nginx_ingress_controller_request_duration_seconds_bucket{namespace=~\"taskflow|taskflow-qa\"}[5m])))",
+            "legendFormat": "{{namespace}} - {{host}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "s", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 12,
+        "title": "Java GC Activity",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 40, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_pause_seconds_sum{namespace=~\"taskflow|taskflow-qa\"}[1m])",
+            "legendFormat": "{{namespace}} - {{pod}} - GC Time (s/s)"
+          },
+          {
+            "expr": "rate(jvm_gc_pause_seconds_count{namespace=~\"taskflow|taskflow-qa\"}[1m])",
+            "legendFormat": "{{namespace}} - {{pod}} - GC Count/s"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "s", "color": {"mode": "palette-classic"}}
+        }
+      },
+      {
+        "id": 13,
+        "title": "Database Connections (HikariCP)",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 40, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "hikaricp_connections_active{namespace=~\"taskflow|taskflow-qa\"}",
+            "legendFormat": "{{namespace}} - {{pod}} - Active"
+          },
+          {
+            "expr": "hikaricp_connections_idle{namespace=~\"taskflow|taskflow-qa\"}",
+            "legendFormat": "{{namespace}} - {{pod}} - Idle"
+          },
+          {
+            "expr": "hikaricp_connections_pending{namespace=~\"taskflow|taskflow-qa\"}",
+            "legendFormat": "{{namespace}} - {{pod}} - Pending"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "short", "color": {"mode": "palette-classic"}}
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(kube_pod_info{namespace=~\"taskflow|taskflow-qa\"}, namespace)",
+          "multi": true,
+          "includeAll": true,
+          "refresh": 1
+        },
+        {
+          "name": "service",
+          "type": "query",
+          "query": "label_values(http_server_requests_seconds_count{namespace=~\"taskflow|taskflow-qa\"}, service)",
+          "multi": true,
+          "includeAll": true,
+          "refresh": 1
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}
