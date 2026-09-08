@@ -52,7 +52,6 @@ jobs:
       - name: Update GitOps for Prod environment
         run: |
           SHA=${{ env.SERVICE_SHA }}
-          sed -i "s|${{ env.SOURCE_ACR }}|${{ env.PROD_ACR }}|g" gitops/apps/taskflow/overlays/prod/kustomization.yaml
           sed -i "/taskflow\/${{ inputs.service }}/,/newTag:/s/newTag: .*/newTag: \"$SHA\"/" gitops/apps/taskflow/overlays/prod/kustomization.yaml
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
