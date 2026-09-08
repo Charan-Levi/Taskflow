@@ -37,4 +37,4 @@ images:
     newTag: "7fe50e73"
   - name: taskflowdevacr.azurecr.io/taskflow/backend-python
     newName: taskflowprodacr.azurecr.io/taskflow/backend-python
-    newTag: "03cc7692"
+    newTag: "11aa3c2b"
