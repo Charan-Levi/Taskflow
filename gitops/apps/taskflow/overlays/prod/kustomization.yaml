@@ -31,7 +31,7 @@ patches:
 images:
   - name: taskflowdevacr.azurecr.io/taskflow/frontend
     newName: taskflowprodacr.azurecr.io/taskflow/frontend
-    newTag: "23d5085e"
+    newTag: "90a8b4cf"
   - name: taskflowdevacr.azurecr.io/taskflow/backend-java
     newName: taskflowprodacr.azurecr.io/taskflow/backend-java
     newTag: "c423d289"
