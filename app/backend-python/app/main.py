@@ -1,3 +1,4 @@
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -24,7 +25,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 app.include_router(analytics_router, prefix="/api/python")
 
 @app.get("/api/python/health")
